@@ -6,30 +6,61 @@ using UnityEngine.InputSystem;
 public class PlayerInputTest : MonoBehaviour
 {
     public float moveSpeed = 1f;
-    public float collisionOffset = 0.05f;
     public ContactFilter2D movementFilter;
     Vector2 movementInput;
     private Rigidbody2D rb;
-    List<RaycastHit2D> castCollisions = new List<RaycastHit2D>();
+
+    public float dashForce = 10f;    // The force applied during dash
+    
+    public float dashDuration = 0.5f; // The duration of the dash in seconds
+    public float dashCooldown = 1.0f;     // The cooldown duration of the dash in seconds
+
+    private bool isDashing = false;  // Flag to track if the character is currently dashing
+
+    private bool canMove = true;     // Flag to track if the character can move
+    private float lastDashTime = -999f;   // The time of the last dash
+
 
 
     private void Awake() {
         rb = GetComponent<Rigidbody2D>();
     }
 
-    private void FixedUpdate() {
-        if(movementInput != Vector2.zero) {
-            // Check for potential collisions
-            int count = rb.Cast(
-                movementInput, // X and Y values between -1 and 1 that represent the direction from the body to look for collisions
-                movementFilter, // The settings that determine where a collision can occur on such as layers to collide with
-                castCollisions, // List of collisions to store the found collisions into after the Cast is finished
-                moveSpeed * Time.fixedDeltaTime + collisionOffset); // The amount to cast equal to the movement plus an offset
-
+    private void Update() {
+        if(movementInput != Vector2.zero & canMove) {
             rb.MovePosition(rb.position + movementInput * moveSpeed * Time.fixedDeltaTime);
-
     }
+        if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing && Time.time - lastDashTime > dashCooldown)
+        {
+            // Trigger the dash ability
+            Dash();
+        }
 }
+
+    void Dash() {
+                // Apply a dash force in the desired direction
+        Vector2 dashDirection = movementInput; // Replace with the desired dash direction
+        rb.velocity = movementInput * dashForce;
+        
+        // Set a flag to track the dash duration
+        isDashing = true;
+        canMove = false;
+        StartCoroutine(StopDash());
+
+                // Update the last dash time
+        lastDashTime = Time.time;
+    }
+    IEnumerator StopDash()
+    {
+        // Wait for the dash duration to complete
+        yield return new WaitForSeconds(dashDuration);
+        
+        // Reset the dash flag and velocity
+        isDashing = false;
+        canMove = true;
+        GetComponent<Rigidbody2D>().velocity = Vector2.zero;
+    }
+
     void OnMove(InputValue movementValue) {
         movementInput = movementValue.Get<Vector2>();
     }
