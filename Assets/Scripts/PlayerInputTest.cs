@@ -5,13 +5,17 @@ using UnityEngine.InputSystem;
 
 public class PlayerInputTest : MonoBehaviour
 {
+    public bool isGrounded; // Flag to indicate if the player is standing on the ground
     public GameObject projectilePrefab;
-    public float moveSpeed = 1f;
+    public float platformerMoveSpeed = 1.5f; // Movement speed for platformer control
+    public float flyingMoveSpeed = 1f; // Movement speed for flying control
+    private bool isFlying = false; // Flag to indicate if character is in flying mode
     public ContactFilter2D movementFilter;
     Vector2 movementInput;
+    Animator animator;
     private Rigidbody2D rb;
+    private float gravity = 0.7f;
 
-    public Animator animator;
 
     public float dashForce = 10f;    // The force applied during dash
     
@@ -27,16 +31,60 @@ public class PlayerInputTest : MonoBehaviour
     private float lastDashTime = -999f;   // The time of the last dash
     private float lastShootTime = -999f;   // The time of the last dash
 
+    void OnCollisionEnter2D(Collision2D collision)
+    {
+        // Check if collision is with a platform
+        if (collision.collider.CompareTag("Platform"))
+        {
+            // Player is standing on the platform
+            isGrounded = true;
+        }
+    }
 
+    void OnCollisionExit2D(Collision2D collision)
+    {
+        // Check if collision is with a platform
+        if (collision.collider.CompareTag("Platform"))
+        {
+            // Player is no longer standing on the platform
+            isGrounded = false;
+        }
+    }
 
     private void Awake() {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
     }
 
     private void Update() {
+                // Detect input to switch between platformer and flying control
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            isFlying = !isFlying; // Toggle flying mode
+            rb.gravityScale = isFlying ? 0f : gravity; // Enable or disable gravity
+                    if (isFlying)
+            {
+                rb.velocity = Vector2.zero; // Set velocity to zero in flying mode
+            }
+        }
+
+
+
+        // Perform movement based on the current control style
+        if (isFlying == false)
+        {
+            // Platformer control
+            float horizontalInput = Input.GetAxis("Horizontal");
+            float verticalInput = Input.GetAxis("Vertical");
+            Vector2 moveDirection = new Vector2(horizontalInput, verticalInput);
+            rb.velocity = new Vector2(moveDirection.x * platformerMoveSpeed, rb.velocity.y);
+        }
+        else
+        {
         if(movementInput != Vector2.zero & canMove) {
-            rb.MovePosition(rb.position + movementInput * moveSpeed * Time.fixedDeltaTime);
+            rb.MovePosition(rb.position + movementInput * flyingMoveSpeed* Time.fixedDeltaTime);
     }
+        }
         if (Input.GetKeyDown(KeyCode.LeftShift) && !isDashing && Time.time - lastDashTime > dashCooldown)
         {
             // Trigger the dash ability
@@ -51,6 +99,21 @@ public class PlayerInputTest : MonoBehaviour
             newProjectile.transform.position = gameObject.transform.position;
 
             lastShootTime = Time.time;
+        }
+
+                if (isGrounded && !isFlying)
+        {
+            // Player is standing on the ground, set isKinematic to true
+            rb.isKinematic = true;
+            // Player is standing on the ground, freeze rotation and vertical position
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation | RigidbodyConstraints2D.FreezePositionY;
+        }
+        else
+        {
+            // Player is not standing on the ground, set isKinematic to false
+            rb.isKinematic = false;
+            rb.constraints = RigidbodyConstraints2D.None;
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
         }
         
 }
