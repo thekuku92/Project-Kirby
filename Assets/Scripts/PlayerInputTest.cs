@@ -5,20 +5,27 @@ using UnityEngine.InputSystem;
 
 public class PlayerInputTest : MonoBehaviour
 {
+    public GameObject projectilePrefab;
     public float moveSpeed = 1f;
     public ContactFilter2D movementFilter;
     Vector2 movementInput;
     private Rigidbody2D rb;
+
+    public Animator animator;
 
     public float dashForce = 10f;    // The force applied during dash
     
     public float dashDuration = 0.5f; // The duration of the dash in seconds
     public float dashCooldown = 1.0f;     // The cooldown duration of the dash in seconds
 
+    public float shootCooldown = 1.0f;     // The cooldown duration of the shot in seconds
+
+
     private bool isDashing = false;  // Flag to track if the character is currently dashing
 
     private bool canMove = true;     // Flag to track if the character can move
     private float lastDashTime = -999f;   // The time of the last dash
+    private float lastShootTime = -999f;   // The time of the last dash
 
 
 
@@ -35,7 +42,19 @@ public class PlayerInputTest : MonoBehaviour
             // Trigger the dash ability
             Dash();
         }
+
+        if (Input.GetKey(KeyCode.Space) && Time.time - lastShootTime > shootCooldown)
+        {
+            Debug.Log("Shooting");
+            animator.SetTrigger("player_attack");
+            GameObject newProjectile = Instantiate(projectilePrefab);
+            newProjectile.transform.position = gameObject.transform.position;
+
+            lastShootTime = Time.time;
+        }
+        
 }
+
 
     void Dash() {
                 // Apply a dash force in the desired direction
